@@ -38,23 +38,44 @@ stages/
 
 ### Stage 1: Authenticate
 ```bash
-# Browser OAuth (Termux/Android works natively)
+# Browser OAuth (Termux/Android works natively) - expires ~60 min
 oci session authenticate --region us-sanjose-1 --tenancy-name diazolvera
 
-# Or API keys for headless
-oci setup config
+# API keys for persistent headless access (recommended for automation)
+# One-time setup - see references/persistent-auth.md
+cat > ~/.oci/config << 'EOF'
+[DEFAULT]
+user=ocid1.user.oc1..aaaaaaaake25vifglqspfashsmyionbxqt2tc65tbpd2a3qiixiv7exaskxa
+fingerprint=d8:9d:a1:15:8a:05:61:ad:5b:4b:2a:44:a4:be:03:9d
+tenancy=ocid1.tenancy.oc1..aaaaaaaasimpzm2iolrderse5ostt5l5djgsdt3slzmmeqzfbluv3ruqmugq
+region=us-sanjose-1
+key_file=/root/.oci/oci_api_key.pem
+EOF
+# Register public key in Console → Profile → API Keys first!
 ```
 
 ### Stage 2: Operations
 ```bash
-# Verify auth
+# Verify auth (API key - no --auth needed)
+oci os ns get
+
+# Or session token
 oci os ns get --auth security_token
 
 # List instances
-oci compute instance list --compartment-id <ocid> --auth security_token
+oci compute instance list --compartment-id <ocid>
 ```
 
-### Stage 3: MCP
+### Stage 3: VM Access (see references/vm-ssh-access.md)
+```bash
+# SSH to VM
+ssh opc@<public-ip>
+
+# VS Code remote
+code --remote ssh-remote+oci-vm /path/on/vm
+```
+
+### Stage 4: MCP
 ```bash
 opencode mcp add oracle-oci-cloud -- uvx oracle.oci-cloud-mcp-server@latest \
   --env OCI_CONFIG_PROFILE=DEFAULT --env FASTMCP_LOG_LEVEL=ERROR
@@ -79,6 +100,8 @@ Each stage defines a contract in its `CONTEXT.md`:
 - `references/troubleshooting.md` - Error → fix mapping
 - `references/callback-mechanism.md` - Browser OAuth callback flow
 - `references/xdg-open-termux.md` - Termux xdg-open fix for browser auth
+- `references/persistent-auth.md` - **API key auth (persistent, no expiry)**
+- `references/vm-ssh-access.md` - **SSH to VM, VS Code remote, port forwarding**
 
 ---
 
