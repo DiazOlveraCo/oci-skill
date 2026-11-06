@@ -137,6 +137,86 @@ fi
 | `Connection timeout` | Check security list allows port 22 from your IP |
 | `No public IP` | Use bastion host or Cloud Shell SSH |
 | `Host key verification failed` | Add `StrictHostKeyChecking no` to SSH config |
+| `Connection refused` | **sshd not running** — see "OCI SSH Daemon Issues" below |
+| `Connection timed out during banner exchange` | SSH daemon hung or starting — wait 30-60s after reboot, try serial console |
+
+### OCI SSH Daemon Issues (Known Problem)
+
+**Problem**: On Oracle Cloud free tier instances (especially VM.Standard.E2.1.Micro), the `sshd.service` frequently fails to start on boot. This is a documented known issue.
+
+**Symptoms**:
+- `Connection refused` immediately after instance shows RUNNING
+- `Connection timed out during banner exchange` after initial connection
+- SSH works briefly then stops working
+
+**Root Causes**:
+1. `sshd.service` fails to start on boot (known OCI issue)
+2. SELinux policy blocks SSH on Oracle Linux 9
+3. `oracle-cloud-agent` conflicts with SSH startup
+4. Insufficient entropy for SSH key generation on micro instances
+
+**Workarounds**:
+
+1. **Wait after reboot**: After instance shows RUNNING, wait 30-60 seconds before SSH
+2. **Serial Console** (reliable access):
+   ```bash
+   # Create console connection
+   oci compute instance-console-connection create --instance-id <ocid> --ssh-public-key-file ~/.ssh/key.pub
+   
+   # Connect via console
+   ssh -i ~/.ssh/key -o ProxyCommand="ssh -W %h:%p -p 443 <connection-id>@instance-console.<region>.oci.oraclecloud.com" <instance-ocid>
+   ```
+3. **Fix via serial console**:
+   ```bash
+   # Once in serial console (as root):
+   systemctl status sshd
+   systemctl start sshd
+   systemctl enable sshd
+   
+   # Check SELinux
+   getenforce
+   # If Enforcing, temporarily allow:
+   setenforce 0
+   # Or fix permanently:
+   sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
+   ```
+4. **Boot volume repair** (last resort):
+   - Stop instance
+   - Detach boot volume
+   - Attach to another instance
+   - Fix `/etc/ssh/sshd_config`, `/etc/selinux/config`
+   - Reattach to original instance
+
+### OCI Free Tier Specific Issues
+
+| Shape | Issue | Mitigation |
+|-------|-------|------------|
+| `VM.Standard.E2.1.Micro` (AMD) | Low entropy → SSH key gen fails | `sudo dnf install haveged && sudo systemctl enable haveged` |
+| `VM.Standard.A1.Flex` (ARM) | Capacity limits, different OS images | Use Oracle Linux 8 instead of 9 |
+| All free tier | Instance may be stopped by OCI if "idle" | Set up cron to ping instance, or use monitoring |
+
+### Reliable SSH Connection Script
+```bash
+#!/bin/bash
+# ssh-oci-reliable.sh - Connect with retries and console fallback
+
+HOST="oci"  # or oci-micro
+MAX_RETRIES=5
+RETRY_DELAY=15
+
+for i in $(seq 1 $MAX_RETRIES); do
+    if ssh -o ConnectTimeout=10 -o BatchMode=yes $HOST "echo OK" 2>/dev/null; then
+        echo "SSH OK on attempt $i"
+        exec ssh $HOST "$@"
+    fi
+    echo "Attempt $i failed, waiting ${RETRY_DELAY}s..."
+    sleep $RETRY_DELAY
+done
+
+echo "All SSH attempts failed. Trying serial console..."
+# Fallback: use OCI CLI to create console connection
+# (requires console connection already created)
+```
 
 ## Current VM Targets
 Run `oci compute instance list --all --query "data[?\"lifecycle-state\"=='RUNNING']"` to see running VMs.

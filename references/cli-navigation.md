@@ -171,6 +171,27 @@ oci session authenticate --region us-sanjose-1 --tenancy-name diazolvera --no-br
 | "Config file invalid: user missing" | Config corrupted by auth | Add `user=ocid1.user.oc1..aaaa...` to config |
 | Command hangs | Network/timeout | Add `timeout N` prefix |
 | "Out of host capacity" | No free tier capacity | Retry via PHP script or wait |
+| SSH "Connection refused" | sshd not running | See `references/vm-ssh-access.md` — OCI SSH Daemon Issues |
+| SSH "Connection timed out during banner exchange" | SSH daemon hung/starting | Wait 30-60s after RUNNING, use serial console |
+| Instance stuck in STOPPING | OCI agent issue | `oci compute instance action --action STOP` then `START` |
+
+### SSH Reliability Commands
+```bash
+# Check instance state with timeout
+timeout 10 oci compute instance get --instance-id <ocid> --query "data.\"lifecycle-state\"" --raw-output --auth security_token
+
+# Stop stuck instance
+oci compute instance action --instance-id <ocid> --action STOP --auth security_token
+
+# Start instance
+oci compute instance action --instance-id <ocid> --action START --auth security_token
+
+# Create serial console connection (reliable access)
+oci compute instance-console-connection create --instance-id <ocid> --ssh-public-key-file ~/.ssh/key.pub --auth security_token
+
+# Connect via console
+ssh -i ~/.ssh/key -o ProxyCommand="ssh -W %h:%p -p 443 <conn-id>@instance-console.<region>.oci.oraclecloud.com" <instance-ocid>
+```
 
 ## Notes
 
