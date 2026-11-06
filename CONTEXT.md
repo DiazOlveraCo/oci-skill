@@ -9,7 +9,14 @@
 ## Current State
 - Session token auth configured at `~/.oci/sessions/DEFAULT/`
 - Token expires ~60 min, refresh with `oci session authenticate --auth security_token`
-- API keys also available for headless persistence
+- API keys also available for headless persistence (`~/.oci/oci_api_key_pkcs1.pem`)
+- Buddy MCP integration available for Zoho Vault OneAuth automation
+
+## Buddy Integration
+- Load buddy skill in current OpenCode session for phone automation
+- Buddy MCP server: `172.21.154.90:8765` (USB tether) or `127.0.0.1:8765` (local)
+- Zoho Vault OneAuth: single action (open tab + press icon + stop), 15s timeout
+- On buddy error: fall back to manual instructions (no retries)
 
 ## Configuration Files
 ```

@@ -36,6 +36,13 @@ stages/
 
 ## Quick Start
 
+### Buddy Skill (Zoho Vault OneAuth)
+When OCI authentication is needed and session token has expired:
+1. Load buddy skill: `skill("buddy")` in current session
+2. Attempt buddy automation (15s timeout): open Zoho Vault tab + press OneAuth icon + stop
+3. On success: continue with OCI operations
+4. On failure: instruct user to manually auth via Zoho Vault + OneAuth (no retries)
+
 ### Stage 1: Authenticate
 ```bash
 # Browser OAuth (Termux/Android works natively) - expires ~60 min
@@ -103,6 +110,7 @@ Each stage defines a contract in its `CONTEXT.md`:
 - `references/persistent-auth.md` - **API key auth (persistent, no expiry)**
 - `references/vm-ssh-access.md` - **SSH to VM, VS Code remote, port forwarding**
 - `references/oci-arm-capacity-php.md` - **Ampere VM capacity automation (PHP, cron-based)**
+- `references/buddy-zoho-vault-auth.md` - **Buddy automation: Zoho Vault OneAuth (single action, 15s timeout)**
 
 ---
 
