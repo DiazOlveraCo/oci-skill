@@ -105,6 +105,7 @@ Each stage defines a contract in its `CONTEXT.md`:
 ## References
 
 - `references/callback-mechanism.md` - Browser OAuth callback flow (works natively on Termux/Android)
+- `references/cli-navigation.md` - **OCI CLI navigation guide: compartments, instances, VNICs, queries, timeouts**
 - `references/xdg-open-termux.md` - Termux xdg-open fix (MUST link to termux-open-url)
 - `references/mcp-config.md` - MCP server configs
 - `references/troubleshooting.md` - Error → fix mapping
