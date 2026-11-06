@@ -55,12 +55,26 @@
 
 | Operation | Command |
 |-----------|---------|
-| Verify auth | `oci os ns get --auth security_token` |
+| Verify auth | `oci os ns get --auth security_token` (timeout 10) |
 | List compartments | `oci iam compartment list --all --compartment-id-in-subtree true --auth security_token` |
-| List instances | `oci compute instance list --compartment-id <ocid> --auth security_token` |
+| List instances | `oci compute instance list --compartment-id <tenancy-ocid> --all --auth security_token` |
 | List ADs | `oci iam availability-domain list --compartment-id <ocid> --auth security_token` |
 | Get images | `oci compute image list --compartment-id <ocid> --shape VM.Standard.A1.Flex --auth security_token` |
 | Get subnets | `oci network subnet list --compartment-id <ocid> --auth security_token` |
+| Get VNIC details | `oci network vnic get --vnic-id <vnic-ocid> --auth security_token` |
+
+## Current VM
+| Property | Value |
+|----------|-------|
+| Name | instance-20261030-1802 |
+| Shape | VM.Standard.E2.1.Micro (AMD) |
+| State | RUNNING |
+| AD | US-SANJOSE-1-AD-1 |
+| Public IP | 146.235.239.203 |
+| Private IP | 10.1.21.187 |
+| SSH | `ssh oci` or `ssh oci-micro` (alias, Oracle Linux 9, user: opc) |
+
+See `references/cli-navigation.md` for full CLI navigation guide.
 
 ## Environment
 ```bash

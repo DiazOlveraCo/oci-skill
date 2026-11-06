@@ -41,13 +41,23 @@ ssh opc@<public-ip>
 
 ### SSH Config (~/.ssh/config)
 ```ssh
-Host oci-vm
-    HostName <public-ip>
+Host oci oci-micro
+    HostName 146.235.239.203
     User opc
-    IdentityFile ~/.ssh/id_rsa
+    IdentityFile ~/.ssh/oci_vm_key
+    IdentitiesOnly yes
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
+    LogLevel ERROR
+    ConnectTimeout 20
 ```
+
+**Usage:**
+- `ssh oci` — connect to the OCI VM
+- `ssh oci-micro` — same VM (alias for the micro instance)
+
+**OS:** Oracle Linux 9 (user: `opc`)
+**Shape:** VM.Standard.E2.1.Micro (AMD, 1 OCPU, 1 GB RAM)
 
 Then: `ssh oci-vm`
 

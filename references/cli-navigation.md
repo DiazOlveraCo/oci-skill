@@ -159,7 +159,7 @@ oci session authenticate --region us-sanjose-1 --tenancy-name diazolvera --no-br
 | AD | US-SANJOSE-1-AD-1 |
 | Public IP | 146.235.239.203 |
 | Private IP | 10.1.21.187 |
-| SSH | `ssh -i ~/.ssh/oci_vm_key ubuntu@146.235.239.203` |
+| SSH | `ssh oci` or `ssh oci-micro` (Oracle Linux 9, user: opc) |
 
 ## Troubleshooting
 
