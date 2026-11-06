@@ -104,12 +104,10 @@ Each stage defines a contract in its `CONTEXT.md`:
 
 ## References
 
-- `references/auth-methods.md` - All authentication methods
-- `references/cli-patterns.md` - Common CLI patterns
+- `references/callback-mechanism.md` - Browser OAuth callback flow (works natively on Termux/Android)
+- `references/xdg-open-termux.md` - Termux xdg-open fix (MUST link to termux-open-url)
 - `references/mcp-config.md` - MCP server configs
 - `references/troubleshooting.md` - Error → fix mapping
-- `references/callback-mechanism.md` - Browser OAuth callback flow
-- `references/xdg-open-termux.md` - Termux xdg-open fix for browser auth
 - `references/persistent-auth.md` - **API key auth (persistent, no expiry)**
 - `references/vm-ssh-access.md` - **SSH to VM, VS Code remote, port forwarding**
 - `references/oci-arm-capacity-php.md` - **Ampere VM capacity automation (PHP, cron-based)**
