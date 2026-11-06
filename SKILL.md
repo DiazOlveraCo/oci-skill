@@ -102,6 +102,7 @@ Each stage defines a contract in its `CONTEXT.md`:
 - `references/xdg-open-termux.md` - Termux xdg-open fix for browser auth
 - `references/persistent-auth.md` - **API key auth (persistent, no expiry)**
 - `references/vm-ssh-access.md` - **SSH to VM, VS Code remote, port forwarding**
+- `references/oci-arm-capacity-php.md` - **Ampere VM capacity automation (PHP, cron-based)**
 
 ---
 

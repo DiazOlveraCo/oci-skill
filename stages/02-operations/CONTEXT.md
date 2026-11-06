@@ -68,6 +68,28 @@ oci compute instance launch \
   --auth security_token
 ```
 
+### Network & Security List Operations (see references/network-security.md)
+```bash
+# List VCNs
+oci network vcn list --compartment-id $ROOT_COMP --auth security_token
+
+# List Security Lists for a VCN
+oci network security-list list --compartment-id $ROOT_COMP --vcn-id <vcn_ocid> --auth security_token
+
+# Add SSH (Port 22) Ingress Rule to Security List
+oci network security-list update --security-list-id <security_list_ocid> \
+  --ingress-security-rules '[{"protocol":"6","source":"0.0.0.0/0","tcpOptions":{"destinationPortRange":{"max":22,"min":22}},"description":"Allow SSH from anywhere"}]' \
+  --force --auth security_token
+
+# List NSGs
+oci network nsg list --compartment-id $ROOT_COMP --vcn-id <vcn_ocid> --auth security_token
+
+# Add SSH Rule to NSG
+oci network nsg update --nsg-id <nsg_ocid> \
+  --ingress-security-rules '[{"protocol":"6","source":"0.0.0.0/0","tcpOptions":{"destinationPortRange":{"max":22,"min":22}},"description":"Allow SSH"}]' \
+  --force --auth security_token
+```
+
 ## ARM Capacity Loop (Free Tier)
 ```bash
 while true; do
