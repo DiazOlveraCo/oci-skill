@@ -3,6 +3,16 @@
 ## Problem
 Session tokens expire (~60 min). Need persistent auth for automation/SSH access.
 
+## Note: Browser OAuth Callbacks DO Work on Termux/Android
+Browser OAuth via `oci session authenticate` works natively on Termux/Android:
+- CLI starts callback server on `localhost:8181`
+- Browser and CLI share the same network namespace on Android
+- `xdg-open` must be linked to `termux-open-url` (not `termux-open`)
+- Fix: `ln -sf $(which termux-open-url) $(which xdg-open)`
+- Previous incorrect claims that "callbacks don't work" were wrong
+
+API key auth is an **alternative** for when you want to avoid browser auth entirely (e.g., headless servers, CI/CD), not because callbacks are broken.
+
 ## Solution: API Key Authentication
 
 ### Setup (One-time)

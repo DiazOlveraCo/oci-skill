@@ -82,6 +82,29 @@ curl "http://localhost:8181/callback?code=TEST&state=TEST"
 # Should show CLI receiving callback
 ```
 
+## Common Mistakes (DO NOT REPEAT)
+
+### ❌ WRONG: "Callbacks don't work on Termux/Android"
+**This is FALSE.** On Termux/Android:
+- Browser app and Termux share the same network namespace
+- `localhost:8181` in the browser reaches the CLI's callback server
+- The OAuth flow works natively when `xdg-open` is linked to `termux-open-url`
+
+### ❌ WRONG: "xdg-open is a stub that does nothing"
+**This is FALSE.** `xdg-open` works when properly linked to `termux-open-url`.
+- Default link: `xdg-open → termux-open` (opens file picker — WRONG)
+- Fixed link: `xdg-open → termux-open-url` (opens browser — CORRECT)
+- Fix: `ln -sf $(which termux-open-url) $(which xdg-open)`
+
+### ❌ WRONG: "No browser exists on this server"
+**This is FALSE for Termux/Android.** Termux runs on Android which has Chrome/Firefox/Samsung Internet. The `termux-open-url` command launches the Android browser via intent.
+
+### ✅ CORRECT Understanding
+- Termux/Android: Browser OAuth works natively (same network namespace)
+- SSH remote: Requires SSH port forwarding (`ssh -L 8181:localhost:8181 remote`)
+- Docker: Requires port mapping (`-p 8181:8181`)
+- API key auth: Alternative for when you want to avoid browser auth entirely
+
 ## Security Note
 - Callback server binds to `127.0.0.1:8181` only (not 0.0.0.0)
 - Only local processes can reach it

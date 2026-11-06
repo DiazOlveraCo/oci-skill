@@ -45,11 +45,15 @@ When OCI authentication is needed and session token has expired:
 
 ### Stage 1: Authenticate
 ```bash
-# Browser OAuth (Termux/Android works natively) - expires ~60 min
+# Browser OAuth (Termux/Android - callback works natively via localhost:8181)
+# xdg-open must be linked to termux-open-url (not termux-open)
 oci session authenticate --region us-sanjose-1 --tenancy-name diazolvera
+# Browser opens, user logs in, callback to localhost:8181 succeeds
+# Token stored at ~/.oci/sessions/DEFAULT/token (~60 min TTL)
 
-# API keys for persistent headless access (recommended for automation)
+# API keys for persistent headless access (no browser, no expiry)
 # One-time setup - see references/persistent-auth.md
+# Register public key in Console → Profile → API Keys first!
 cat > ~/.oci/config << 'EOF'
 [DEFAULT]
 user=ocid1.user.oc1..aaaaaaaake25vifglqspfashsmyionbxqt2tc65tbpd2a3qiixiv7exaskxa
@@ -58,7 +62,6 @@ tenancy=ocid1.tenancy.oc1..aaaaaaaasimpzm2iolrderse5ostt5l5djgsdt3slzmmeqzfbluv3
 region=us-sanjose-1
 key_file=/root/.oci/oci_api_key.pem
 EOF
-# Register public key in Console → Profile → API Keys first!
 ```
 
 ### Stage 2: Operations
