@@ -161,6 +161,108 @@ oci session authenticate --region us-sanjose-1 --tenancy-name diazolvera --no-br
 | Private IP | 10.1.21.187 |
 | SSH | `ssh oci` or `ssh oci-micro` (Oracle Linux 9, user: opc) |
 
+## Instance State Management (CLI)
+
+### Check Instance State
+```bash
+timeout 10 oci compute instance get --instance-id <ocid> --query "data.\"lifecycle-state\"" --raw-output --auth security_token
+```
+
+### Stop Stuck Instance (STOPPING → STOPPED)
+```bash
+oci compute instance action --instance-id <ocid> --action STOP --auth security_token
+# Wait for STOPPED state
+oci compute instance get --instance-id <ocid> --query "data.\"lifecycle-state\"" --raw-output --auth security_token
+```
+
+### Start Instance (STOPPED → RUNNING)
+```bash
+oci compute instance action --instance-id <ocid> --action START --auth security_token
+# Wait for RUNNING state
+oci compute instance get --instance-id <ocid> --query "data.\"lifecycle-state\"" --raw-output --auth security_token
+```
+
+### Restart Instance (RUNNING → STOPPING → RUNNING)
+```bash
+oci compute instance action --instance-id <ocid> --action SOFTRESET --auth security_token
+# Or HARDRESET for force
+oci compute instance action --instance-id <ocid> --action RESET --auth security_token
+```
+
+### Force Stop if STUCK in STOPPING
+```bash
+# If instance stuck in STOPPING for >5 min
+oci compute instance action --instance-id <ocid> --action STOP --auth security_token
+# Then START
+oci compute instance action --instance-id <ocid> --action START --auth security_token
+```
+
+## Serial Console Workflow (Reliable SSH Fix)
+
+### Create Console Connection (One-time)
+```bash
+oci compute instance-console-connection create \
+  --instance-id <instance-ocid> \
+  --ssh-public-key-file ~/.ssh/oci_vm_key.pub \
+  --auth security_token \
+  --query "data.id" --raw-output
+```
+
+### Connect via Serial Console
+```bash
+# Get connection details
+CONN_ID=$(oci compute instance-console-connection list --instance-id <instance-ocid> --query "data[0].id" --raw-output --auth security_token)
+CONN_STRING=$(oci compute instance-console-connection get --instance-console-connection-id $CONN_ID --query "data.connection-string" --raw-output --auth security_token)
+
+# Connect (example format):
+ssh -i ~/.ssh/oci_vm_key -o ProxyCommand="ssh -W %h:%p -p 443 $CONN_ID@instance-console.us-sanjose-1.oci.oraclecloud.com" <instance-ocid>
+```
+
+### Fix SSH Daemon via Serial Console
+Once connected (you'll be at a login prompt or root shell):
+```bash
+# Check SSH status
+systemctl status sshd
+
+# Start and enable SSH
+systemctl start sshd
+systemctl enable sshd
+
+# Fix SELinux (Oracle Linux 9 common issue)
+getenforce
+# If "Enforcing":
+setenforce 0
+# Permanent fix:
+sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
+
+# Check for oracle-cloud-agent conflict
+systemctl status oracle-cloud-agent
+# If it's blocking SSH, restart it:
+systemctl restart oracle-cloud-agent
+
+# Install haveged for entropy (micro instances)
+dnf install -y haveged
+systemctl enable --now haveged
+```
+
+## OCI Mobile App Workflow (Buddy/Phone Automation)
+
+### Restart Instance via OCI Mobile App
+1. **Open app**: `com.oracle.oci.console.ocimobile`
+2. **Tap "Compute"** (element with desc="Compute")
+3. **Tap your instance** (e.g., "instance-20261030-1802")
+4. **Tap "Restart"** button
+5. **Confirm** restart in dialog
+6. **Wait** for status to show "Stopping" → "Running"
+7. **Wait 30-60s** after RUNNING before SSH
+
+### Force Stop if Stuck in STOPPING
+1. Navigate to instance details
+2. If status shows "Stopping" for >5 min:
+   - Tap "Stop" (if enabled) or wait
+   - If still stuck, use CLI: `oci compute instance action --action STOP --instance-id <ocid> --wait-for-state STOPPED`
+   - Then START: `oci compute instance action --action START --instance-id <ocid> --wait-for-state RUNNING`
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -174,24 +276,6 @@ oci session authenticate --region us-sanjose-1 --tenancy-name diazolvera --no-br
 | SSH "Connection refused" | sshd not running | See `references/vm-ssh-access.md` — OCI SSH Daemon Issues |
 | SSH "Connection timed out during banner exchange" | SSH daemon hung/starting | Wait 30-60s after RUNNING, use serial console |
 | Instance stuck in STOPPING | OCI agent issue | `oci compute instance action --action STOP` then `START` |
-
-### SSH Reliability Commands
-```bash
-# Check instance state with timeout
-timeout 10 oci compute instance get --instance-id <ocid> --query "data.\"lifecycle-state\"" --raw-output --auth security_token
-
-# Stop stuck instance
-oci compute instance action --instance-id <ocid> --action STOP --auth security_token
-
-# Start instance
-oci compute instance action --instance-id <ocid> --action START --auth security_token
-
-# Create serial console connection (reliable access)
-oci compute instance-console-connection create --instance-id <ocid> --ssh-public-key-file ~/.ssh/key.pub --auth security_token
-
-# Connect via console
-ssh -i ~/.ssh/key -o ProxyCommand="ssh -W %h:%p -p 443 <conn-id>@instance-console.<region>.oci.oraclecloud.com" <instance-ocid>
-```
 
 ## Notes
 

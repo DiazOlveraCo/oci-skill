@@ -59,8 +59,6 @@ Host oci oci-micro
 **OS:** Oracle Linux 9 (user: `opc`)
 **Shape:** VM.Standard.E2.1.Micro (AMD, 1 OCPU, 1 GB RAM)
 
-Then: `ssh oci-vm`
-
 ### Port Forwarding (for local services on VM)
 ```bash
 # Forward local port 8080 to VM's port 8080
@@ -127,6 +125,71 @@ if [ -n "$INSTANCE" ]; then
 else
     echo "No running VM matching '$PATTERN' found"
 fi
+```
+
+## OCI Mobile App Workflow (Buddy/Phone Automation)
+
+### Restart Instance via OCI Mobile App
+1. **Open app**: `com.oracle.oci.console.ocimobile`
+2. **Tap "Compute"** (element with desc="Compute")
+3. **Tap your instance** (e.g., "instance-20261030-1802")
+4. **Tap "Restart"** button
+5. **Confirm** restart in dialog
+6. **Wait** for status to show "Stopping" → "Running"
+7. **Wait 30-60s** after RUNNING before SSH
+
+### Force Stop if Stuck in STOPPING
+1. Navigate to instance details
+2. If status shows "Stopping" for >5 min:
+   - Tap "Stop" (if enabled) or wait
+   - If still stuck, use CLI: `oci compute instance action --action STOP --instance-id <ocid> --wait-for-state STOPPED`
+   - Then START: `oci compute instance action --action START --instance-id <ocid> --wait-for-state RUNNING`
+
+## Serial Console Workflow (Reliable SSH Fix)
+
+### Create Console Connection (One-time)
+```bash
+oci compute instance-console-connection create \
+  --instance-id <instance-ocid> \
+  --ssh-public-key-file ~/.ssh/oci_vm_key.pub \
+  --query "data.id" --raw-output
+```
+
+### Connect via Serial Console
+```bash
+# Get connection details
+CONN_ID=$(oci compute instance-console-connection list --instance-id <instance-ocid> --query "data[0].id" --raw-output)
+CONN_STRING=$(oci compute instance-console-connection get --instance-console-connection-id $CONN_ID --query "data.connection-string" --raw-output)
+
+# Connect (example format):
+ssh -i ~/.ssh/oci_vm_key -o ProxyCommand="ssh -W %h:%p -p 443 $CONN_ID@instance-console.us-sanjose-1.oci.oraclecloud.com" <instance-ocid>
+```
+
+### Fix SSH Daemon via Serial Console
+Once connected (you'll be at a login prompt or root shell):
+```bash
+# Check SSH status
+systemctl status sshd
+
+# Start and enable SSH
+systemctl start sshd
+systemctl enable sshd
+
+# Fix SELinux (Oracle Linux 9 common issue)
+getenforce
+# If "Enforcing":
+setenforce 0
+# Permanent fix:
+sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
+
+# Check for oracle-cloud-agent conflict
+systemctl status oracle-cloud-agent
+# If it's blocking SSH, restart it:
+systemctl restart oracle-cloud-agent
+
+# Install haveged for entropy (micro instances)
+dnf install -y haveged
+systemctl enable --now haveged
 ```
 
 ## Troubleshooting
@@ -220,3 +283,81 @@ echo "All SSH attempts failed. Trying serial console..."
 
 ## Current VM Targets
 Run `oci compute instance list --all --query "data[?\"lifecycle-state\"=='RUNNING']"` to see running VMs.
+
+## Complete Installation Workflow (PHP Capacity Automation Script)
+
+### Prerequisites on VM
+```bash
+# 1. Fix SSH daemon (run via serial console if needed)
+sudo systemctl enable --now sshd
+sudo setenforce 0
+sudo sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
+sudo dnf install -y haveged && sudo systemctl enable --now haveged
+
+# 2. Install PHP and Composer
+sudo dnf install -y php php-cli php-mbstring php-xml php-curl php-zip unzip git
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+php -r "unlink('composer-setup.php');"
+```
+
+### Deploy Capacity Script
+```bash
+# 1. Clone the repo
+cd /home/opc
+rm -rf oci-arm-host-capacity
+git clone https://github.com/hitrov/oci-arm-host-capacity.git
+cd oci-arm-host-capacity
+
+# 2. Install dependencies
+composer install --no-dev --optimize-autoloader
+
+# 3. Configure .env
+cp .env.example .env
+# Edit .env with your OCI credentials:
+# - TENANCY_OCID
+# - USER_OCID
+# - FINGERPRINT
+# - PRIVATE_KEY_PATH
+# - REGION (us-sanjose-1)
+# - COMPARTMENT_OCID
+# - SHAPE (VM.Standard.A1.Flex)
+# - OCPU_COUNT, MEMORY_IN_GBS
+
+# 4. Test run
+php src/capacity.php
+
+# 5. Add cron for periodic retries (every 5 minutes)
+(crontab -l 2>/dev/null; echo "*/5 * * * * /usr/bin/php /home/opc/oci-arm-host-capacity/src/capacity.php >> /home/opc/capacity.log 2>&1") | crontab -
+
+# 6. Monitor
+tail -f /home/opc/capacity.log
+```
+
+### .env Template for us-sanjose-1 Ampere A1
+```env
+TENANCY_OCID=ocid1.tenancy.oc1..aaaaaaaasimpzm2iolrderse5ostt5l5djgsdt3slzmmeqzfbluv3ruqmugq
+USER_OCID=ocid1.user.oc1..aaaaaaaake25vifglqspfashsmyionbxqt2tc65tbpd2a3qiixiv7exaskxa
+FINGERPRINT=d8:9d:a1:15:8a:05:61:ad:5b:4b:2a:44:a4:be:03:9d
+PRIVATE_KEY_PATH=/home/opc/.oci/oci_api_key.pem
+REGION=us-sanjose-1
+COMPARTMENT_OCID=ocid1.compartment.oc1..aaaaaaaake25vifglqspfashsmyionbxqt2tc65tbpd2a3qiixiv7exaskxa
+SHAPE=VM.Standard.A1.Flex
+OCPU_COUNT=4
+MEMORY_IN_GBS=24
+AVAILABILITY_DOMAIN=aXzQ:US-SANJOSE-1-AD-1
+IMAGE_OCID=ocid1.image.oc1.us-sanjose-1.aaaaaaaaxxxxx  # Oracle Linux 8 ARM
+SSH_PUBLIC_KEY_PATH=/home/opc/.ssh/authorized_keys
+```
+
+### Full E2E Workflow Summary
+
+1. **Auth**: Ensure API key auth works (`oci os ns get`)
+2. **Find VM**: List instances, identify target
+3. **Restart if needed**: OCI Mobile app → Compute → Instance → Restart → Wait for RUNNING + 30s
+4. **SSH**: `ssh oci` (with retries)
+5. **If SSH fails**: Use serial console to fix `sshd` + SELinux
+6. **Deploy script**: Install PHP/Composer → Clone repo → Configure `.env` → Test → Cron
+7. **Monitor**: Check logs, verify script runs every 5 min
+
+This workflow handles the full lifecycle from instance management to automated capacity polling for Ampere A1 Flex in us-sanjose-1.
