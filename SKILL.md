@@ -123,3 +123,27 @@ Each stage defines a contract in its `CONTEXT.md`:
 - Artifacts: `[topic]-[type].md` in stage `output/`
 - Config in `_config/` is reusable across runs
 - No spaces in file/folder names
+
+---
+
+## Dependencies
+
+### Buddy Skill (Zoho Vault OneAuth)
+
+**Load command:** `skill("buddy")` in CURRENT SESSION
+
+**Location:** Global at `/root/.opencode/skill/buddy/` (or workspace copy)
+**Action:** Execute `skill("buddy")` directly — do NOT check available skills list first.
+**Usage:** 15s timeout automation — open Zoho Vault tab in Ulaa → press OneAuth icon → stop. No further interaction.
+
+**Fallback (genuine load failure only):** If `skill("buddy")` fails with actual error (not "not in list"), instruct user to manually open Ulaa → Zoho Vault → press OneAuth icon.
+
+### Coding Skill (Command Execution Discipline)
+
+**Load command:** `skill("coding")` in CURRENT SESSION
+
+**Location:** Global at `/root/.opencode/skill/coding/`
+**Action:** Execute `skill("coding")` directly — provides mandatory timeout discipline, process signal discipline, and command execution patterns.
+**Enforces:** All `bash` commands MUST include `timeout N` prefix per tier table in coding skill.
+
+**Required for:** Any OCI CLI operations, SSH commands, package installs, network calls.
