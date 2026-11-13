@@ -29,15 +29,8 @@ openssl rsa -pubout -outform DER -in ~/.oci/oci_api_key.pem | openssl md5 -c
 # 3. Register public key in OCI Console
 # Console → Profile → User Settings → API Keys → "Add API Key" → Paste public key
 
-# 4. Create persistent config
-cat > ~/.oci/config << 'EOF'
-[DEFAULT]
-user=ocid1.user.oc1..<your-user-ocid>
-fingerprint=<your-fingerprint>
-tenancy=ocid1.tenancy.oc1..<your-tenancy-ocid>
-region=us-sanjose-1
-key_file=/root/.oci/oci_api_key.pem
-EOF
+# 4. Create persistent config (use printf, not cat heredoc)
+printf "[DEFAULT]\nuser=ocid1.user.oc1..<your-user-ocid>\nfingerprint=<your-fingerprint>\ntenancy=ocid1.tenancy.oc1..<your-tenancy-ocid>\nregion=us-sanjose-1\nkey_file=/root/.oci/oci_api_key.pem\n" > ~/.oci/config
 chmod 600 ~/.oci/config
 ```
 

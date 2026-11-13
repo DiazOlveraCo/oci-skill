@@ -2,7 +2,50 @@
 
 ## Overview
 
-This reference covers how to navigate Oracle Cloud Infrastructure using the OCI CLI. The CLI is installed at `/root/lib/oracle-cli/bin/oci` and uses session token auth (browser OAuth) or API key auth.
+This reference covers how to navigate Oracle Cloud Infrastructure using the OCI CLI. The CLI is typically installed at `/root/lib/oracle-cli/bin/oci` (bundled) or `/usr/bin/oci` (package install) and uses session token auth (browser OAuth) or API key auth.
+
+## OCI CLI Installation (Auto-Install If Missing) — PowerShell
+
+**PREREQUISITE: Load PowerShellAI skill first** — `skill("powershellai")` — required for AI-assisted error analysis and robust automation patterns (sync execution, timeouts with kill switch, session persistence, streaming output).
+
+**MANDATORY: Verify CLI is installed before any OCI operation. If missing, install immediately.**
+
+Use the provided PowerShell script for robust cross-platform installation with AI-assisted error analysis:
+
+```powershell
+# Run the auto-installer script - USE ABSOLUTE PATH (env var not reliable)
+& "/root/.config/opencode/skills/oci/scripts/Ensure-OCICLI.ps1" -Verbose -PackageManagerTimeout 180 -ScriptTimeout 300
+
+# Or with options
+& "/root/.config/opencode/skills/oci/scripts/Ensure-OCICLI.ps1" -Verbose -ForceReinstall
+& "/root/.config/opencode/skills/oci/scripts/Ensure-OCICLI.ps1" -PackageManagerTimeout 120 -ScriptTimeout 180
+```
+
+The script (`scripts/Ensure-OCICLI.ps1`) follows **powershellai robust automation patterns**:
+- **Platform detection**: dnf (Oracle Linux/RHEL/Fedora), apt (Ubuntu/Debian), pacman (Arch), apk (Alpine), yum, zypper
+- **Fallback**: Official Oracle installer script if no package manager found (auto-cleans existing /root/lib/oracle-cli)
+- **Verification**: Confirms `oci --version` works after install
+- **AI error analysis**: Uses PSAI (`ai` function) to diagnose failures on EVERY failure
+- **Synchronous execution with live output**: No background jobs, users see every progress line
+- **Explicit timeout handling with kill switch**: Process-tree kill on timeout
+- **Named PSAI sessions for persistence**: Export on failure for debugging
+- **Streaming AI responses**: Users see AI analysis in real-time
+- **Logging**: Colored output with timestamps, verbose mode
+
+**Quick inline check (if script unavailable):**
+```powershell
+if (-not (Get-Command oci -ErrorAction SilentlyContinue)) {
+    Write-Host "OCI CLI not found. Installing..." -ForegroundColor Yellow
+    if (Get-Command dnf) { sudo dnf install -y oracle-cloud-cli }
+    elseif (Get-Command apt) { sudo apt update; sudo apt install -y oracle-cloud-cli }
+    elseif (Get-Command pacman) { sudo pacman -S --noconfirm oci-cli }
+    elseif (Get-Command apk) { sudo apk add --no-cache oci-cli }
+    else { bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults }
+}
+if (Get-Command oci) { Write-Host "OCI CLI ready: $(oci --version)" -ForegroundColor Green }
+```
+
+> **⚠️ CRITICAL**: Past sessions proved agents IGNORED this script and ran the Oracle installer directly via bash/pwsh, causing failures. ALWAYS use the absolute path above. Do NOT use `$env:OPENCODE_SKILL_OCI` - it is not set.
 
 ## Prerequisites
 

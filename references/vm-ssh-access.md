@@ -127,16 +127,34 @@ else
 fi
 ```
 
-## OCI Mobile App Workflow (Buddy/Phone Automation)
+## OCI CLI Workflow (PRIMARY — Use First)
+
+### Restart Instance via OCI CLI
+```bash
+# Soft reset (recommended — graceful reboot)
+oci compute instance action --instance-id <instance-ocid> --action SOFTRESET --auth security_token --wait-for-state RUNNING --wait-interval-seconds 10
+
+# Or hard stop/start if soft reset fails
+oci compute instance action --instance-id <instance-ocid> --action STOP --auth security_token --wait-for-state STOPPED --wait-interval-seconds 10
+oci compute instance action --instance-id <instance-ocid> --action START --auth security_token --wait-for-state RUNNING --wait-interval-seconds 10
+```
+
+**Always use OCI CLI first.** It's faster, scriptable, and doesn't require phone access.
+
+---
+
+## OCI Mobile App Workflow (Buddy/Phone Automation) — FALLBACK ONLY
+
+**Use ONLY when OCI CLI is unavailable or fails.**
 
 ### Restart Instance via OCI Mobile App
 1. **Open app**: `com.oracle.oci.console.ocimobile`
 2. **Tap "Compute"** (element with desc="Compute")
 3. **Tap your instance** (e.g., "instance-20261030-1802")
 4. **Tap "Restart"** button
-5. **Confirm** restart in dialog
-6. **Wait** for status to show "Stopping" → "Running"
-7. **Wait 30-60s** after RUNNING before SSH
+4. **Confirm** restart in dialog
+5. **Wait** for status to show "Stopping" → "Running"
+6. **Wait 30-60s** after RUNNING before SSH
 
 ### Force Stop if Stuck in STOPPING
 1. Navigate to instance details
